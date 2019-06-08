@@ -31,13 +31,13 @@
     "atdgen": "cd __tests__ && atdgen -t test.atd && atdgen -bs test.atd"
   },
   "devDependencies": {
-    "@glennsl/bs-jest": "^0.4.3",
-    "bs-platform": "^4.0.5"
+    "@glennsl/bs-jest": "^0.4.8",
+    "bs-platform": "^6.0.1"
   },
   "peerDependencies": {
-    "bs-platform": "^4.0.5"
+    "bs-platform": "^6.0.1"
   },
   "dependencies": {
-    "@glennsl/bs-json": "^3.0.0"
+    "@glennsl/bs-json": "^4.0.0"
   }
 }
