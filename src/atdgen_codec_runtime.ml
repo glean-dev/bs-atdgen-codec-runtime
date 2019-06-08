@@ -1,5 +1,3 @@
-open Printf
-
 module Json = struct
   type t = Js.Json.t
   external read_t : t -> t = "%identity"
@@ -154,7 +152,9 @@ struct
   let unit j =
     if (Obj.magic j : 'a Js.null) == Js.null
     then ()
-    else raise (DecodeError (sprintf "Expected null, got %s" (Js.Json.stringify j)))
+    else
+      let err = Js.Json.stringify j in
+      raise (DecodeError {j|Expected null, got $err|j})
 
   let int32 j = Int32.of_string (string j)
   let int64 j = Int64.of_string (string j)
@@ -199,17 +199,18 @@ struct
   let enum l =
     let constr0 x =
       let s = string x in
-      match List.assoc s l with
-      | exception Not_found -> raise @@ DecodeError (sprintf "unknown constructor %S" s)
-      | `Single a -> a
-      | `Decode _ -> raise @@ DecodeError (sprintf "constructor %S expects arguments" s)
+
+      match List.assoc_opt s l with
+      | None -> raise @@ DecodeError {j|unknown constructor $s|j}
+      | Some (`Single a)  -> a
+      | Some (`Decode _) -> raise @@ DecodeError {j|constructor $s expects arguments|j}
     in
     let constr x =
       let (s,args) = pair string (fun x -> x) x in
-      match List.assoc s l with
-      | exception Not_found -> raise @@ DecodeError (sprintf "unknown constructor %S" s)
-      | `Single _ -> raise @@ DecodeError (sprintf "constructor %S doesn't expect arguments" s)
-      | `Decode d -> decode d args
+      match List.assoc_opt s l with
+      | None ->  raise @@ DecodeError {j|unknown constructor $s|j}
+      | Some (`Single _) -> raise @@ DecodeError {j|constructor $s doesn't expect arguments|j}
+      | Some (`Decode d) -> decode d args
     in
     either constr0 constr
 
@@ -218,11 +219,15 @@ struct
       (fun x ->
          if string x = "None"
          then None
-         else raise (DecodeError (sprintf "Expected None, got %s" (Js.Json.stringify x))))
+         else
+           let value = Js.Json.stringify x in
+           raise (DecodeError {j|Expected None, got $value|j}))
       (fun x ->
          match pair string f x with
          | ("Some",v) -> Some v
-         | _ -> raise (DecodeError (sprintf "Expected Some _, got %s" (Js.Json.stringify x))))
+         | _ ->
+           let value = Js.Json.stringify x in
+           raise (DecodeError {j|Expected Some _, got $value|j}))
 
   let adapter (normalize: Json.t -> Json.t) (reader: 'a t) json =
     reader (normalize json)
